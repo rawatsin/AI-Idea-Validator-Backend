@@ -8,6 +8,8 @@ import ideaRoutes from "./routes/idea.routes.js";
 import { prisma } from "../config/prisma.js";
 import cookieParser from "cookie-parser";
 
+const PORT = process.env.PORT || 5000;
+
 const app = express();
 app.use(cookieParser());
 app.use(
@@ -30,7 +32,7 @@ async function startServer() {
 
     console.log("✅ Database connected successfully");
 
-    app.listen(5000, () => {
+    app.listen(PORT, () => {
       console.log("🚀 Server running on Port 5000");
     });
   } catch (error) {

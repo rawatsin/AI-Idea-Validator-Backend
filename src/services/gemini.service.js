@@ -1,69 +1,122 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
-
-export const generatePostSummary = async (title, content) => {
-  const prompt = `
-You are an AI assistant for a Reddit-like discussion platform.
-
-Analyze the following post and return ONLY valid JSON.
-
-Post Title:
-${title}
-
-Post Content:
-${content}
-
-Return this exact JSON structure:
-
-{
-  "summary": "A concise 2-4 sentence summary.",
-  "keyPoints": [
-    "Point 1",
-    "Point 2",
-    "Point 3"
+const responseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    summary: { type: Type.STRING },
+    marketOpportunity: { type: Type.STRING },
+    strengths: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
+    weaknesses: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
+    risks: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
+    competitors: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
+    recommendations: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
+    confidence: {
+      type: Type.INTEGER,
+    },
+  },
+  required: [
+    "summary",
+    "marketOpportunity",
+    "strengths",
+    "weaknesses",
+    "risks",
+    "competitors",
+    "recommendations",
+    "confidence",
   ],
-  "category": "Technology",
-  "sentiment": "Positive",
-  "readingTime": "2 min",
-  "tags": ["AI", "LLM", "Discussion"],
-  "controversyScore": 5,
-  "discussionPotential": "High"
-}
+};
 
-Rules:
-- Return ONLY JSON.
-- Do not use markdown.
-- Do not wrap the JSON in \`\`\`.
-- Do not invent facts.
-- If information is missing, base the summary only on the given content.
-- controversyScore must be an integer between 1 and 10.
-- discussionPotential must be one of: Low, Medium, High.
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const analyzeStartupIdea = async (idea) => {
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+  });
+
+  const prompt = `
+You are an experienced startup advisor.
+
+Analyze the startup idea realistically.
+
+Return objective, actionable feedback.
+
+Title: ${idea.title}
+
+Pitch:
+${idea.pitch}
+
+Problem:
+${idea.problem}
+
+Solution:
+${idea.solution}
+
+Target Audience:
+${idea.targetAudience}
+
+Business Type:
+${idea.businessType}
+
+Geography:
+${idea.geography}
+
+Stage:
+${idea.stage}
+
+Revenue Model:
+${idea.revenueModel || "Not provided"}
+
+Competitors:
+${idea.competitors || "Not provided"}
+
+Assumption:
+${idea.assumption || "Not provided"}
+
+Additional Context:
+${idea.additionalContext || "None"}
 `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
+  const MAX_RETRIES = 3;
 
-    let text = response.text.trim();
-
-    text = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      return JSON.parse(text);
-    } catch (err) {
-      console.error("Raw Gemini Response:\n", text);
-      throw err;
+      const response = await ai.models.generateContent({
+        model: process.env.GEMINI_MODEL || "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema,
+        },
+      });
+
+      return JSON.parse(response.text);
+    } catch (error) {
+      console.error(`Gemini attempt ${attempt} failed`);
+
+      if (
+        error.status === 503 &&
+        attempt < MAX_RETRIES
+      ) {
+        await sleep(1000 * Math.pow(2, attempt - 1));
+        continue;
+      }
+
+      throw error;
     }
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    throw new Error("Failed to generate AI summary.");
   }
 };

@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { prisma } from "../../config/prisma.js";
 import { generateToken, verifyToken } from "../utils/jwt.js";
+import { cookieOptions } from "../config/cookie.js";
 
 export const signup = async (req, res) => {
   try {
@@ -46,12 +47,7 @@ export const signup = async (req, res) => {
 
     const token = generateToken(user.id);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    res.cookie("token", token, cookieOptions);
 
     return res.status(201).json({
       message: "User created successfully",
@@ -99,12 +95,7 @@ export const login = async (req, res) => {
 
     const token = generateToken(user.id);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    res.cookie("token", token, cookieOptions);
 
     return res.status(200).json({
       message: "Login successful",
@@ -128,7 +119,7 @@ export const logout = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
 
   return res.status(200).json({

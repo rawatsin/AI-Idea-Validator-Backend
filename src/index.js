@@ -5,6 +5,8 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import testRoutes from "./routes/test.routes.js";
 import ideaRoutes from "./routes/idea.routes.js";
+import plansRoutes from "./routes/plans.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 import { prisma } from "../config/prisma.js";
 import cookieParser from "cookie-parser";
 
@@ -25,6 +27,8 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/ideas",ideaRoutes);
+app.use("/api/users/plan",plansRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.use("/api/test", testRoutes); // test routes
 

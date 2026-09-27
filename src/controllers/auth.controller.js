@@ -3,6 +3,7 @@ import { prisma } from "../../config/prisma.js";
 import { generateToken, verifyToken } from "../utils/jwt.js";
 import { cookieOptions } from "../config/cookie.js";
 
+
 export const signup = async (req, res) => {
   try {
     const { username, email, password, avatar, bio } = req.body;
@@ -127,8 +128,19 @@ export const logout = async (req, res) => {
   });
 };
 
-export const me = (req, res) => {
+export const me = async (req, res) => {
+
+  const sub = await prisma.subscriptions.findFirst({
+    where:{
+      userId:req.user.id
+    },
+    select:{
+      plan:true,
+      expiryDate:true,
+    }
+  })
   res.json({
     user: req.user,
+    subscriptions:sub,
   });
 };
